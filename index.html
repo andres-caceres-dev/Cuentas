@@ -13,20 +13,21 @@
     --text-main: #f3f4f6;
     --text-muted: #9ca3af;
     
-    /* Colores financieros */
+    /* Colores temáticos financieros */
     --money-green: #10b981;
+    --money-green-hover: #059669;
     --expense-red: #ef4444;
     --fixed-blue: #3b82f6;
+    --saving-purple: #8b5cf6;
     --accent-gold: #f59e0b;
-    --saving-purple: #a855f7;
   }
 
   body {
     background-color: var(--bg-main);
     color: var(--text-main);
-    font-family: 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
-    padding: 12px;
+    padding: 10px;
   }
 
   .card {
@@ -36,6 +37,18 @@
     padding: 1.25rem;
     margin-bottom: 16px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  }
+  
+  .mcard {
+    background: var(--bg-input);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+  }
+  .mcard:hover {
+    border-color: var(--border-color);
+    transform: translateY(-2px);
   }
 
   .tabs-container {
@@ -51,7 +64,6 @@
 
   .tab-btn {
     padding: 10px 18px;
-    border: 1px solid var(--border-color);
     background: var(--bg-card);
     cursor: pointer;
     font-size: 13px;
@@ -63,12 +75,17 @@
     gap: 6px;
     white-space: nowrap;
     transition: all 0.2s ease;
+    border: 1px solid var(--border-color);
   }
   .tab-btn.active {
     color: #fff;
     background: var(--money-green);
     border-color: var(--money-green);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
+  .tab-btn:hover:not(.active) {
+    background: var(--bg-input);
+    color: var(--text-main);
   }
 
   .panel { display: none; }
@@ -82,6 +99,16 @@
     border-bottom: 1px solid var(--border-color);
   }
   .row-item:last-child { border-bottom: none; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
 
   .form-row {
     display: flex;
@@ -100,8 +127,12 @@
     border-radius: 10px;
     font-size: 14px;
     outline: none;
+    transition: border 0.2s;
   }
-
+  .form-row input:focus, .form-row select:focus {
+    border-color: var(--money-green);
+  }
+  
   button.btn-action {
     background: var(--money-green);
     color: white;
@@ -113,7 +144,9 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    transition: background 0.2s;
   }
+  button.btn-action:hover { background: var(--money-green-hover); }
 
   .btn-del {
     background: none;
@@ -121,65 +154,84 @@
     cursor: pointer;
     color: var(--expense-red);
     padding: 6px;
+    font-size: 16px;
+    border-radius: 6px;
+    transition: background 0.2s;
   }
+  .btn-del:hover { background: rgba(239, 68, 68, 0.1); }
 
-  .pbar { height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .pbar { height: 6px; background: var(--bg-input); border-radius: 4px; overflow: hidden; margin-top: 8px; }
   .pbar-f { height: 100%; border-radius: 4px; transition: width .5s ease; }
+  
+  .tip-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-bottom: 12px;
+    border-left: 4px solid var(--money-green);
+  }
 </style>
 
 <div style="padding: 1rem 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
   <div>
     <h1 style="font-size: 22px; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 8px;">
-      <i class="ti ti-database-share" style="color: var(--money-green);"></i> MiBilletón Cloud
+      <i class="ti ti-wallet" style="color: var(--money-green);"></i> MiBilletón Pro Cloud
     </h1>
-    <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Sincronizado en tiempo real con Supabase</p>
+    <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Sincronizado de forma segura y en tiempo real con Supabase</p>
   </div>
   <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 30px; padding: 6px 14px;">
-    <button id="prevBtn" style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--text-main);"><i class="ti ti-chevron-left"></i></button>
-    <span id="monthLabel" style="font-size: 14px; font-weight: 600; min-width: 110px; text-align: center; text-transform: capitalize;">Buscando...</span>
-    <button id="nextBtn" style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--text-main);"><i class="ti ti-chevron-right"></i></button>
+    <button id="prevBtn" style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--text-main);" aria-label="Mes anterior"><i class="ti ti-chevron-left"></i></button>
+    <span id="monthLabel" style="font-size: 14px; font-weight: 600; min-width: 110px; text-align: center; text-transform: capitalize;"></span>
+    <button id="nextBtn" style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--text-main);" aria-label="Mes siguiente"><i class="ti ti-chevron-right"></i></button>
   </div>
 </div>
 
 <div class="tabs-container" role="tablist">
-  <button class="tab-btn active" data-tab="overview"><i class="ti ti-layout-dashboard"></i>Resumen Cuenta</button>
-  <button class="tab-btn" data-tab="income"><i class="ti ti-square-rounded-arrow-down" style="color: var(--money-green);"></i>Ingresos</button>
-  <button class="tab-btn" data-tab="expenses"><i class="ti ti-square-rounded-arrow-up" style="color: var(--expense-red);"></i>Gastos Variables</button>
-  <button class="tab-btn" data-tab="fixed"><i class="ti ti-pin" style="color: var(--fixed-blue);"></i>Obligaciones Fijas</button>
-  <button class="tab-btn" data-tab="savings"><i class="ti ti-piggy-bank" style="color: var(--saving-purple);"></i>Ahorro</button>
-  <button class="tab-btn" data-tab="tips"><i class="ti ti-bulb" style="color: var(--accent-gold);"></i>Consejos</button>
+  <button class="tab-btn active" data-tab="overview" role="tab" aria-selected="true"><i class="ti ti-layout-dashboard"></i>Resumen</button>
+  <button class="tab-btn" data-tab="income" role="tab"><i class="ti ti-square-rounded-arrow-down" style="color: var(--money-green);"></i>Ingresos</button>
+  <button class="tab-btn" data-tab="expenses" role="tab"><i class="ti ti-square-rounded-arrow-up" style="color: var(--expense-red);"></i>Egresos</button>
+  <button class="tab-btn" data-tab="fixed" role="tab"><i class="ti ti-pin" style="color: var(--fixed-blue);"></i>Gastos Fijos</button>
+  <button class="tab-btn" data-tab="savings" role="tab"><i class="ti ti-piggy-bank" style="color: var(--saving-purple);"></i>Ahorro</button>
+  <button class="tab-btn" data-tab="tips" role="tab"><i class="ti ti-bulb-filled" style="color: var(--accent-gold);"></i>Consejos</button>
 </div>
 
-<div id="panel-overview" class="panel active">Inicializando el sistema...</div>
-<div id="panel-income" class="panel"></div>
-<div id="panel-expenses" class="panel"></div>
-<div id="panel-fixed" class="panel"></div>
-<div id="panel-savings" class="panel"></div>
-<div id="panel-tips" class="panel"></div>
+<div id="panel-overview" class="panel active" role="tabpanel">Inicializando sistema...</div>
+<div id="panel-income" class="panel" role="tabpanel"></div>
+<div id="panel-expenses" class="panel" role="tabpanel"></div>
+<div id="panel-fixed" class="panel" role="tabpanel"></div>
+<div id="panel-savings" class="panel" role="tabpanel"></div>
+<div id="panel-tips" class="panel" role="tabpanel"></div>
 
 <script>
-// =============== CONFIGURACIÓN GLOBAL ===============
+// =============== CONFIGURACIÓN GLOBAL SUPABASE ===============
 const SB_URL = "https://pknkexsoidbvseftndos.supabase.co"; 
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrbmtleHNvaWRidnNlZnRuZG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0OTU5NjAsImV4cCI6MjA5NTA3MTk2MH0.n7jBEp608AxcGaGawJCCwyG8cAhEM_R311Z7xTpP5Jo";
 
 let supabase = null;
 
 const MO=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const CATS=['Alimentación','Transporte','Vivienda','Salud','Educación','Entretenimiento','Servicios','Deudas','Otros'];
-const CICO={'Alimentación':'ti-soup','Transporte':'ti-motorbike','Vivienda':'ti-home-2','Salud':'ti-heart-handshake','Educación':'ti-book-2','Entretenimiento':'ti-device-gamepad-2','Servicios':'ti-bolt','Deudas':'ti-building-bank','Otros':'ti-package'};
+const CATS=['Alimentación','Transporte','Vivienda','Salud','Educación','Entretenimiento','Ropa','Tecnología','Servicios','Deudas','Otros'];
+const CICO={'Alimentación':'ti-soup','Transporte':'ti-motorbike','Vivienda':'ti-home-2','Salud':'ti-heart-handshake','Educación':'ti-book-2','Entretenimiento':'ti-device-gamepad-2','Ropa':'ti-shirt','Tecnología':'ti-device-laptop','Servicios':'ti-bolt','Deudas':'ti-building-bank','Otros':'ti-package'};
+const CC=['#10b981','#3b82f6','#ef4444','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#6366f1','#a855f7','#f43f5e'];
 
 let Y = new Date().getFullYear(), M = new Date().getMonth();
-let db_ingresos = [], db_variables = [], db_config_fijos = [], db_abonos_fijos = [];
+let db_ingresos = [], db_variables = [], db_config_fijos = [], db_abonos_fijos = [], db_ahorros = [];
 let currentTab = 'overview';
-let chartCaja = null, chartFijos = null;
+let ci = null;
 
-const COP = n => new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(n||0);
+const COP = n => new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0,maximumFractionDigits:0}).format(n||0);
 const getPeriodo = () => `${Y}_${String(M+1).padStart(2,'0')}`;
 
-// Función que fuerza la espera de la librería externa en memoria antes de instanciar
+const cG=()=>'var(--money-green)';
+const cR=()=>'var(--expense-red)';
+const cB=()=>'var(--fixed-blue)';
+const cP=()=>'var(--saving-purple)';
+const cA=()=>'var(--accent-gold)';
+
+// Forzar la validación e inyección asíncrona de la librería externa
 function inicializarClienteSeguro() {
   const SupabaseLib = window.supabase || (window.Supabase && window.Supabase.createClient ? window.Supabase : null);
-  
   if (SupabaseLib) {
     if (typeof SupabaseLib.createClient === 'function') {
       supabase = SupabaseLib.createClient(SB_URL, SB_KEY);
@@ -196,21 +248,19 @@ async function init() {
   setupMonthNavigation();
   document.getElementById('monthLabel').innerText = `${MO[M]} ${Y}`;
   
-  // Si no encuentra la librería al instante, espera un bucle de 300ms (útil para archivos locales)
   let conecto = inicializarClienteSeguro();
   if (!conecto) {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 400));
     conecto = inicializarClienteSeguro();
   }
 
   if (!supabase) {
     document.getElementById('panel-overview').innerHTML = `
-      <div class="card" style="border-color: var(--expense-red); padding: 2rem; text-align: center;">
-        <i class="ti ti-alert-triangle" style="font-size: 40px; color: var(--expense-red);"></i>
-        <h3 style="margin: 10px 0 6px;">Error de Enlace CDN</h3>
-        <p style="color: var(--text-muted); font-size: 14px; margin: 0;">El navegador bloqueó la descarga de la librería Supabase desde internet. Verifica tu conexión de red o refresca la pestaña.</p>
-      </div>
-    `;
+      <div class="card" style="border-color: var(--expense-red); text-align: center; padding: 2rem;">
+        <i class="ti ti-alert-triangle" style="font-size: 42px; color: var(--expense-red);"></i>
+        <h3 style="margin: 12px 0 6px;">Error de Enlace CDN</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin:0;">No se pudo instanciar la SDK de Supabase. Refresca la vista o comprueba la red.</p>
+      </div>`;
     return;
   }
   await fetchData();
@@ -220,29 +270,51 @@ async function fetchData() {
   try {
     const per = getPeriodo();
     document.getElementById('monthLabel').innerText = `${MO[M]} ${Y}`;
-    document.getElementById('panel-overview').innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:20px;">Consultando base de datos...</p>`;
 
-    const [f1, f2, f3, f4] = await Promise.all([
+    const [f1, f2, f3, f4, f5] = await Promise.all([
       supabase.from('config_fijos').select('*'),
       supabase.from('ingresos').select('*').eq('mes_periodo', per),
       supabase.from('gastos_variables').select('*').eq('mes_periodo', per),
-      supabase.from('abonos_fijos').select('*').eq('mes_periodo', per)
+      supabase.from('abonos_fijos').select('*').eq('mes_periodo', per),
+      supabase.from('ahorros').select('*') // Trae todos los históricos para calcular acumulados
     ]);
 
     db_config_fijos = f1.data || [];
     db_ingresos = f2.data || [];
     db_variables = f3.data || [];
     db_abonos_fijos = f4.data || [];
+    db_ahorros = f5.data || [];
 
     render();
   } catch (error) {
-    console.error("Error cargando datos de Supabase:", error);
-    document.getElementById('panel-overview').innerHTML = `
-      <div class="card" style="border-color: var(--accent-gold); text-align: center;">
-        <p style="color: var(--accent-gold); margin: 0;">Error de comunicación con PostgreSQL. Revisa la configuración de tus políticas RLS.</p>
-      </div>
-    `;
+    console.error("Fallo al sincronizar con Supabase:", error);
   }
+}
+
+// Cálculo de Totales del Período
+const tI = () => db_ingresos.reduce((s,i) => s + Number(i.monto), 0);
+const tF = () => db_config_fijos.reduce((s,f) => s + Number(f.amount), 0);
+const tAbonadoFijos = () => db_abonos_fijos.reduce((s,a) => s + Number(a.monto_abonado), 0);
+const tV = () => db_variables.reduce((s,v) => s + Number(v.monto), 0);
+const tE = () => tV() + tAbonadoFijos();
+const bal = () => tI() - tE();
+
+// Cálculos de Ahorros
+const tAhorroHistorico = () => db_ahorros.reduce((s,a) => s + Number(a.monto), 0);
+const tAhorroMesActual = () => db_ahorros.filter(a => a.mes_periodo === getPeriodo()).reduce((s,a) => s + Number(a.monto), 0);
+
+function bd() {
+  const b = {};
+  db_variables.forEach(v => { b[v.categoria] = (b[v.categoria] || 0) + Number(v.monto); });
+  db_config_fijos.forEach(f => {
+    const abonos = db_abonos_fijos.filter(a => a.id_gasto_fijo === f.id).reduce((s,a) => s + Number(a.monto_abonado), 0);
+    if(abonos > 0) b[f.category] = (b[f.category] || 0) + abonos;
+  });
+  return b;
+}
+
+function mc(label, val, color, sub=''){
+  return `<div class="mcard"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:6px;">${label}</div><div style="font-size:22px;font-weight:700;color:${color};font-variant-numeric:tabular-nums;">${val}</div>${sub?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:4px;">${sub}</div>`:''}</div>`;
 }
 
 function render() {
@@ -254,228 +326,245 @@ function render() {
   if (currentTab === 'tips') renderTips();
 }
 
-// ================== DASHBOARDS (PESTAÑA RESUMEN) ==================
+// ================= PANEL: RESUMEN GENERAL =================
 function renderOverview() {
-  if (chartCaja) chartCaja.destroy();
-  if (chartFijos) chartFijos.destroy();
-
-  const totalIngresos = db_ingresos.reduce((s,i) => s + Number(i.monto), 0);
-  const totalVariables = db_variables.reduce((s,v) => s + Number(v.monto), 0);
-  const totalAbonadoFijos = db_abonos_fijos.reduce((s,a) => s + Number(a.monto_abonado), 0);
+  if (ci) { ci.destroy(); ci = null; }
+  const inc = tI(), exp = tE(), b = bal(), savedTotal = tAhorroHistorico(), savedMes = tAhorroMesActual();
   
-  const totalEgresosReales = totalVariables + totalAbonadoFijos;
-  const saldoEspejoCuenta = totalIngresos - totalEgresosReales;
-
-  const metaFijosMensual = db_config_fijos.reduce((s,f) => s + Number(f.amount), 0);
-  const fijosPendientes = Math.max(0, metaFijosMensual - totalAbonadoFijos);
-  const porcMeteFijos = metaFijosMensual > 0 ? Math.min(100, Math.round((totalAbonadoFijos / metaFijosMensual) * 100)) : 0;
+  const pct = inc > 0 ? Math.round((exp / inc) * 100) : 0;
+  const fpct = inc > 0 ? Math.round((tAbonadoFijos() / inc) * 100) : 0;
+  const bdo = bd();
 
   document.getElementById('panel-overview').innerHTML = `
-    <div style="background: linear-gradient(135deg, #142329 0%, #0b1215 100%); border:1px solid var(--money-green); border-radius:16px; padding:1.5rem; margin-bottom:16px;">
-      <div style="font-size:12px; font-weight:600; text-transform:uppercase; color:var(--money-green); letter-spacing:1px;"><i class="ti ti-building-bank"></i> Saldo Neto Disponible en Cuenta</div>
-      <div style="font-size:36px; font-weight:800; color:#fff; margin:6px 0; font-variant-numeric: tabular-nums;">${COP(saldoEspejoCuenta)}</div>
-      <p style="font-size:13px; color:var(--text-muted); margin:0;">Calculado de: ${COP(totalIngresos)} recibidos menos ${COP(totalEgresosReales)} que ya salieron físicamente.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem;">
+      ${mc('Ingresos', COP(inc), cG(), '<i class="ti ti-trending-up"></i> Entradas')}
+      ${mc('Egresos Reales', COP(exp), cR(), '<i class="ti ti-trending-down"></i> Pagos Out')}
+      ${mc('Balance Cuenta', COP(b), b>=0?cG():cR(), b>=0?'<i class="ti ti-check"></i> Melo en Caja':'<i class="ti ti-alert-triangle"></i> En déficit')}
+      ${mc('Ahorro Total Fijo', COP(savedTotal), cP(), `<i class="ti ti-calendar-stats"></i> Este mes: ${COP(savedMes)}`)}
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
-      <div class="card">
-        <div style="font-size:15px; font-weight:600; margin-bottom:4px;"><i class="ti ti-chart-donut" style="color:var(--money-green);"></i> Uso de tu Plata Real</div>
-        <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Egresos reales del mes quincenal</div>
-        <div style="display:grid; grid-template-columns: 1fr 120px; gap:12px; align-items:center;">
-          <div>
-            <div style="font-size:13px; margin-bottom:6px;">Gastos Variables: <strong style="color:var(--expense-red);">${COP(totalVariables)}</strong></div>
-            <div style="font-size:13px; margin-bottom:6px;">Abonos Fijos Hechos: <strong style="color:var(--fixed-blue);">${COP(totalAbonadoFijos)}</strong></div>
-          </div>
-          <div style="height:120px; position:relative;">
-            ${totalEgresosReales > 0 ? `<canvas id="chartCajaCanvas"></canvas>` : `<div style="font-size:11px; color:var(--text-muted); text-align:center; padding-top:40px;">Sin egresos aún</div>`}
-          </div>
-        </div>
+    ${inc > 0 ? `
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px;"><i class="ti ti-activity" style="color:var(--money-green);"></i> Indicadores de Salud Financiera</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+        <div class="mcard"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Egresos / Ingresos</div><div style="font-size:22px;font-weight:700;color:${pct>90?cR():pct>70?cA():cG()};">${pct}%</div><div style="font-size:12px;margin-top:4px;">${pct>90?'⚠ Gasto crítico':pct>70?'⚡ Cuidado peligro':'✓ Rango seguro'}</div></div>
+        <div class="mcard"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Fijos Pagados / Ingresos</div><div style="font-size:22px;font-weight:700;color:${fpct>50?cR():cG()};">${fpct}%</div><div style="font-size:12px;margin-top:4px;">${fpct>50?'⚠ Mucho compromiso fixed':'✓ Fijos estables'}</div></div>
+        <div class="mcard"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Meta de Ahorro (20%)</div><div style="font-size:22px;font-weight:700;color:${cG()};">${COP(Math.round(inc*.2))}</div><div style="font-size:12px;margin-top:4px;color:var(--text-muted);">Ideal del período</div></div>
       </div>
+    </div>` : ''}
 
-      <div class="card">
-        <div style="font-size:15px; font-weight:600; margin-bottom:4px;"><i class="ti ti-target-arrow" style="color:var(--accent-gold);"></i> Termómetro de Fijos</div>
-        <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Meta total comprometida: <strong>${COP(metaFijosMensual)}</strong></div>
-        <div style="display:grid; grid-template-columns: 1fr 120px; gap:12px; align-items:center;">
-          <div>
-            <div style="font-size:13px; margin-bottom:4px;">Progreso de Cobertura: <strong style="color:var(--money-green);">${porcMeteFijos}%</strong></div>
-            <div class="pbar" style="margin-bottom:10px;"><div class="pbar-f" style="width:${porcMeteFijos}%; background:var(--fixed-blue);"></div></div>
-            <div style="font-size:16px; font-weight:700; color:var(--expense-red);">${COP(fijosPendientes)}</div>
-          </div>
-          <div style="height:120px; position:relative;">
-            ${metaFijosMensual > 0 ? `<canvas id="chartFijosCanvas"></canvas>` : `<div style="font-size:11px; color:var(--text-muted); text-align:center; padding-top:40px;">Sin obligaciones fijas</div>`}
-          </div>
+    ${Object.keys(bdo).length > 0 ? `
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:14px;"><i class="ti ti-chart-donut" style="color:var(--fixed-blue);"></i> Distribución de Salidas del Mes</div>
+      <div style="display:grid;grid-template-columns:1fr 140px;gap:16px;align-items:center;">
+        <div>${Object.entries(bdo).sort((a,b)=>b[1]-a[1]).map(([cat,amt],i)=>`
+          <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+              <span><i class="ti ${CICO[cat]||'ti-package'}" style="margin-right:6px;color:var(--text-muted);"></i>${cat}</span>
+              <span style="font-weight:600;font-variant-numeric:tabular-nums;">${COP(amt)}</span>
+            </div>
+            <div class="pbar"><div class="pbar-f" style="width:${exp>0?Math.round((amt/exp)*100):0}%;background:${CC[i%CC.length]};"></div></div>
+          </div>`).join('')}
         </div>
+        <div style="position:relative;height:140px;"><canvas id="cc"></canvas></div>
       </div>
-    </div>
+    </div>` : `<div class="card" style="text-align:center;padding:2.5rem;color:var(--text-muted);"><i class="ti ti-chart-pie" style="font-size:42px;display:block;margin:0 auto 12px;color:var(--border-color);"></i><p style="margin:0;font-size:14px;">Mete movimientos este mes para desbloquear los gráficos en tiempo real.</p></div>`}
   `;
 
-  setTimeout(() => {
-    const ctxCaja = document.getElementById('chartCajaCanvas');
-    if(ctxCaja && totalEgresosReales > 0) {
-      chartCaja = new Chart(ctxCaja, {
+  if(Object.keys(bdo).length > 0){
+    setTimeout(() => {
+      const cv = document.getElementById('cc'); if(!cv) return;
+      ci = new Chart(cv, {
         type: 'doughnut',
-        data: { labels: ['Variables', 'Fijos'], datasets: [{ data: [totalVariables, totalAbonadoFijos], backgroundColor: ['#ef4444', '#3b82f6'], borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '75%' }
+        data: { labels: Object.keys(bdo), datasets: [{ data: Object.values(bdo), backgroundColor: CC.slice(0,Object.keys(bdo).length), borderWidth: 0, hoverOffset: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }
       });
-    }
-    const ctxFijos = document.getElementById('chartFijosCanvas');
-    if(ctxFijos && metaFijosMensual > 0) {
-      chartFijos = new Chart(ctxFijos, {
-        type: 'doughnut',
-        data: { labels: ['Cubierto', 'Faltante'], datasets: [{ data: [totalAbonadoFijos, fijosPendientes], backgroundColor: ['#10b981', '#1c2a30'], borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '75%' }
-      });
-    }
-  }, 50);
-}
-
-// ================= PANEL: INGRESO DE DINERO =================
-function renderIncome() {
-  document.getElementById('panel-income').innerHTML = `
-    <div class="card">
-      <div style="font-size:15px; font-weight:600; margin-bottom:12px;"><i class="ti ti-plus" style="color:var(--money-green);"></i> Registrar Entrada de Dinero</div>
-      <div class="form-row">
-        <input id="in_desc" placeholder="Ej. Primera Quincena, Extra..." style="flex:2;" />
-        <input id="in_monto" type="number" placeholder="Monto $" />
-        <button class="btn-action" onclick="addIngreso()"><i class="ti ti-plus"></i> Cargar</button>
-      </div>
-    </div>
-    <div class="card">
-      <div style="font-size:15px; font-weight:600; margin-bottom:12px;">Historial de Ingresos de este Mes</div>
-      <div id="income_list"></div>
-    </div>
-  `;
-  const list = document.getElementById('income_list');
-  if (db_ingresos.length === 0) {
-    list.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:14px; padding:12px 0;">No hay ingresos reportados.</p>`;
-  } else {
-    list.innerHTML = db_ingresos.map(i => `
-      <div class="row-item">
-        <div><div style="font-size:14px; font-weight:600;">${i.descripcion}</div></div>
-        <div style="display:flex; align-items:center; gap:12px;"><span style="color:var(--money-green); font-weight:700;">+${COP(i.monto)}</span><button class="btn-del" onclick="delIngreso('${i.id}')"><i class="ti ti-trash"></i></button></div>
-      </div>
-    `).join('');
+    }, 80);
   }
 }
 
-async function addIngreso() {
-  const d = document.getElementById('in_desc').value.trim();
-  const m = parseInt(document.getElementById('in_monto').value);
-  if(!d || !m || m <= 0) return;
-  await supabase.from('ingresos').insert([{ monto: m, descripcion: d, mes_periodo: getPeriodo() }]);
+// ================= PANEL: INGRESOS =================
+function renderIncome() {
+  document.getElementById('panel-income').innerHTML = `
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px;"><i class="ti ti-plus" style="color:var(--money-green);"></i> Registrar Nuevo Ingreso Real</div>
+      <div class="form-row">
+        <input id="iD" placeholder="Ej. Sueldo quincena, Trabajo extra, Freelance..." style="flex:2;" />
+        <input id="iA" type="number" placeholder="Monto $" />
+        <button class="btn-action" onclick="addI()"><i class="ti ti-plus"></i> Añadir</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:15px;font-weight:600;"><i class="ti ti-list" style="color:var(--text-muted);"></i> Entradas de ${MO[M]}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--money-green);font-variant-numeric:tabular-nums;">${COP(tI())}</div>
+      </div>
+      <div id="income_rows_target"></div>
+    </div>`;
+
+  const target = document.getElementById('income_rows_target');
+  if(db_ingresos.length === 0) {
+    target.innerHTML = `<p style="text-align:center;color:var(--text-muted);padding:1.5rem 0;margin:0;font-size:14px;"><i class="ti ti-cash-off" style="display:block;font-size:32px;margin:0 auto 8px;color:var(--border-color);"></i>Sin registros en este período.</p>`;
+  } else {
+    target.innerHTML = db_ingresos.map(i => `
+      <div class="row-item">
+        <div><div style="font-size:14px;font-weight:600;">${i.descripcion}</div></div>
+        <div style="display:flex;align-items:center;gap:12px;"><span style="font-weight:700;color:var(--money-green);font-variant-numeric:tabular-nums;">+${COP(i.monto)}</span><button class="btn-del" onclick="rmI('${i.id}')"><i class="ti ti-trash"></i></button></div>
+      </div>`).join('');
+  }
+}
+
+async function addI(){
+  const d = document.getElementById('iD').value.trim();
+  const a = parseInt(document.getElementById('iA').value);
+  if(!d || !a || a <= 0) return;
+  await supabase.from('ingresos').insert([{ monto: a, descripcion: d, mes_periodo: getPeriodo() }]);
   await fetchData();
 }
 
-async function delIngreso(id) {
+async function rmI(id){
   await supabase.from('ingresos').delete().eq('id', id);
   await fetchData();
 }
 
-// ================= PANEL: GASTOS VARIABLES =================
+// ================= PANEL: EGRESOS (VARIABLES Y FIJOS COBRADOS) =================
 function renderExpenses() {
+  const b = bal(), inc = tI(), exp = tE();
   document.getElementById('panel-expenses').innerHTML = `
     <div class="card">
-      <div style="font-size:15px; font-weight:600; margin-bottom:12px;"><i class="ti ti-minus" style="color:var(--expense-red);"></i> Registrar Gasto del Día a Día</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px;"><i class="ti ti-minus" style="color:var(--expense-red);"></i> Registrar Gasto Diario Variable</div>
       <div class="form-row">
-        <input id="ex_desc" placeholder="¿En qué gastaste plata?" style="flex:2;" />
-        <select id="ex_cat">${CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
-        <input id="ex_monto" type="number" placeholder="Monto $" />
-        <button class="btn-action" style="background:var(--expense-red);" onclick="addVariable()"><i class="ti ti-plus"></i> Descontar</button>
+        <input id="eD" placeholder="¿En qué gastaste?" style="flex:2;" />
+        <select id="eC">${CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
+        <input id="eA" type="number" placeholder="Monto $" />
+        <button class="btn-action" style="background:var(--expense-red);" onclick="addE()"><i class="ti ti-plus"></i> Descontar</button>
       </div>
+    </div>
+    <div class="card" style="border-left:4px solid var(--fixed-blue);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:600;color:var(--fixed-blue);"><i class="ti ti-pin"></i> Desembolsos Efectuados en Fijos</div>
+        <div style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums; color:var(--fixed-blue);">${COP(tAbonadoFijos())}</div>
+      </div>
+      <div id="fixed_abonos_target"></div>
     </div>
     <div class="card">
-      <div style="font-size:15px; font-weight:600; margin-bottom:12px;">Historial de Gastos Diarios</div>
-      <div id="var_list"></div>
-    </div>
-  `;
-  const list = document.getElementById('var_list');
-  if (db_variables.length === 0) {
-    list.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:14px; padding:12px 0;">No hay gastos variables todavía.</p>`;
-  } else {
-    list.innerHTML = db_variables.map(v => `
-      <div class="row-item">
-        <div style="display:flex; align-items:center; gap:10px;"><i class="ti ${CICO[v.categoria]||'ti-package'}" style="color:var(--text-muted);"></i><div><div style="font-size:14px; font-weight:600;">${v.descripcion}</div></div></div>
-        <div style="display:flex; align-items:center; gap:12px;"><span style="color:var(--expense-red); font-weight:700;">-${COP(v.monto)}</span><button class="btn-del" onclick="delVariable('${v.id}')"><i class="ti ti-trash"></i></button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:15px;font-weight:600;"><i class="ti ti-shopping-cart" style="color:var(--expense-red);"></i> Bolsa de Gastos Variables Directos</div>
+        <div style="font-size:15px;font-weight:700;color:var(--expense-red);font-variant-numeric:tabular-nums;">${COP(tV())}</div>
       </div>
-    `).join('');
+      <div id="variable_rows_target"></div>
+    </div>`;
+
+  const targetF = document.getElementById('fixed_abonos_target');
+  if(db_abonos_fijos.length === 0) {
+    targetF.innerHTML = `<p style="color:var(--text-muted);font-size:12px;margin:0;">No se han inyectado abonos a deudas fijas esta quincena.</p>`;
+  } else {
+    targetF.innerHTML = db_abonos_fijos.map(a => {
+      const ref = db_config_fijos.find(f => f.id === a.id_gasto_fijo);
+      return `<div class="row-item"><span style="font-size:13px;"><i class="ti ti-check-checkbox" style="color:var(--money-green);"></i> ${ref?ref.name:'Obligación'}</span><span style="font-weight:600;color:var(--fixed-blue); font-size:13px;">-${COP(a.monto_abonado)}</span></div>`;
+    }).join('');
+  }
+
+  const targetV = document.getElementById('variable_rows_target');
+  if(db_variables.length === 0) {
+    targetV.innerHTML = `<p style="text-align:center;color:var(--text-muted);padding:1rem 0;margin:0;font-size:13px;">Sin gastos variables anotados.</p>`;
+  } else {
+    targetV.innerHTML = db_variables.map(v => `
+      <div class="row-item">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <i class="ti ${CICO[v.categoria]||'ti-package'}" style="color:var(--text-muted); font-size:16px;"></i>
+          <div>
+            <div style="font-size:14px;font-weight:600;">${v.descripcion}</div>
+            <span class="badge" style="background:var(--bg-input);color:var(--text-muted); padding: 1px 6px; font-size: 10px;">${v.categoria}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;"><span style="font-weight:700;color:var(--expense-red);font-variant-numeric:tabular-nums;">-${COP(v.monto)}</span><button class="btn-del" onclick="rmE('${v.id}')"><i class="ti ti-trash"></i></button></div>
+      </div>`).join('');
   }
 }
 
-async function addVariable() {
-  const d = document.getElementById('ex_desc').value.trim();
-  const c = document.getElementById('ex_cat').value;
-  const m = parseInt(document.getElementById('ex_monto').value);
-  if(!d || !m || m <= 0) return;
-  await supabase.from('gastos_variables').insert([{ monto: m, descripcion: d, categoria: c, mes_periodo: getPeriodo() }]);
+async function addE() {
+  const d = document.getElementById('eD').value.trim();
+  const c = document.getElementById('eC').value;
+  const a = parseInt(document.getElementById('eA').value);
+  if(!d || !a || a <= 0) return;
+  await supabase.from('gastos_variables').insert([{ monto: a, descripcion: d, categoria: c, mes_periodo: getPeriodo() }]);
   await fetchData();
 }
 
-async function delVariable(id) {
+async function rmE(id) {
   await supabase.from('gastos_variables').delete().eq('id', id);
   await fetchData();
 }
 
 // ================= PANEL: OBLIGACIONES FIJAS =================
 function renderFixed() {
+  const inc = tI();
   document.getElementById('panel-fixed').innerHTML = `
+    <div style="background:rgba(59,130,246,0.1); border:1px solid var(--fixed-blue); border-radius:12px; padding:12px; margin-bottom:16px;">
+      <p style="font-size:13px; color:var(--text-main); margin:0; line-height:1.5;">
+        <i class="ti ti-info-circle-filled" style="color:var(--fixed-blue);"></i> Control de Compromisos: Los gastos fijos se configuran una sola vez y no alteran tu flujo de caja real hasta que metas un <strong>abono específico</strong> en la quincena correspondiente.
+      </p>
+    </div>
     <div class="card">
-      <div style="font-size:15px; font-weight:600; margin-bottom:12px;"><i class="ti ti-circle-plus" style="color:var(--fixed-blue);"></i> Vincular Nueva Obligación Mensual</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px;"><i class="ti ti-circle-plus" style="color:var(--fixed-blue);"></i> Vincular Nueva Obligación Fija Permanente</div>
       <div class="form-row">
-        <input id="fx_name" placeholder="Ej. Cuota Moto, Internet..." style="flex:2;" />
-        <select id="fx_cat">${CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
-        <input id="fx_monto" type="number" placeholder="Monto Mensual" />
-        <button class="btn-action" style="background:var(--fixed-blue);" onclick="addConfigFijo()"><i class="ti ti-plus"></i> Vincular</button>
+        <input id="fN" placeholder="Ej. Arriendo, Internet, Plan Móvil..." style="flex:2;" />
+        <select id="fC">${CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
+        <input id="fA" type="number" placeholder="Monto Mensual Fijo $" />
+        <button class="btn-action" style="background:var(--fixed-blue);" onclick="addF()"><i class="ti ti-plus"></i> Enlazar</button>
       </div>
     </div>
     <div class="card">
-      <div style="font-size:15px; font-weight:600; margin-bottom:16px;"><i class="ti ti-checklist"></i> Estado de Pagos Quincenales</div>
-      <div id="fixed_cards_container"></div>
-    </div>
-  `;
-
-  const container = document.getElementById('fixed_cards_container');
-  if(db_config_fijos.length === 0) {
-    container.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:14px; padding:12px 0;">No has configurado obligaciones fijas.</p>`;
-    return;
-  }
-
-  container.innerHTML = db_config_fijos.map(f => {
-    const abonosHec = db_abonos_fijos.filter(a => a.id_gasto_fijo === f.id);
-    const totalAbonado = abonosHec.reduce((s,a) => s + Number(a.monto_abonado), 0);
-    const pendiente = Math.max(0, Number(f.amount) - totalAbonado);
-
-    return `
-      <div style="background:var(--bg-input); border-radius:12px; padding:14px; margin-bottom:12px; border:1px solid ${pendiente===0?'var(--money-green)':'var(--border-color)'};">
-        <div style="display:flex; justify-content:space-between; align-items:start;">
-          <div>
-            <div style="font-size:14px; font-weight:600;"><i class="ti ${CICO[f.category]||'ti-package'}"></i> ${f.name}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:13px; font-weight:700;">Meta: ${COP(f.amount)}</div>
-            <div style="font-size:12px; color:var(--money-green);">Abonado: ${COP(totalAbonado)}</div>
-          </div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);">
-          <input id="abo_val_${f.id}" type="number" placeholder="Monto quincena" style="background:var(--bg-main); border:1px solid var(--border-color); color:#fff; padding:6px 10px; border-radius:6px; font-size:12px; flex:1;" />
-          <button onclick="addAbonoFijo('${f.id}')" style="background:var(--fixed-blue); border:none; color:white; padding:6px 12px; border-radius:6px; cursor:pointer;">Abonar</button>
-          <button class="btn-del" onclick="delConfigFijo('${f.id}')"><i class="ti ti-trash"></i></button>
-        </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:600;"><i class="ti ti-lock"></i> Presupuesto Comprometido Mensual</div>
+        <div style="font-size:16px;font-weight:700;color:var(--fixed-blue);font-variant-numeric:tabular-nums;">${COP(tF())}/mes</div>
       </div>
-    `;
-  }).join('');
+      <div id="fixed_configs_target"></div>
+    </div>`;
+
+  const target = document.getElementById('fixed_configs_target');
+  if(db_config_fijos.length === 0) {
+    target.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:13px;">Aún no has enlazado responsabilidades fijas en el sistema.</p>`;
+  } else {
+    target.innerHTML = db_config_fijos.map(f => {
+      const hechos = db_abonos_fijos.filter(a => a.id_gasto_fijo === f.id);
+      const abonado = hechos.reduce((s,a) => s + Number(a.monto_abonado), 0);
+      const restante = Math.max(0, Number(f.amount) - abonado);
+
+      return `
+        <div style="background:var(--bg-input); border-radius:12px; padding:14px; margin-bottom:12px; border:1px solid ${restante===0?'var(--money-green)':'var(--border-color)'};">
+          <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div>
+              <div style="font-size:14px; font-weight:600;"><i class="ti ${CICO[f.category]||'ti-package'}" style="margin-right:4px;"></i> ${f.name}</div>
+              <span class="badge" style="background:rgba(59,130,246,0.1);color:var(--fixed-blue); font-size:9px; padding:1px 6px; margin-top:4px;">${f.category}</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:13px; font-weight:700;">Meta: ${COP(f.amount)}</div>
+              <div style="font-size:11px; color:var(--money-green);">Faltante: ${COP(restante)}</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);">
+            <input id="abo_val_${f.id}" type="number" placeholder="Abonar quincena $" style="background:var(--bg-main); border:1px solid var(--border-color); color:#fff; padding:6px 10px; border-radius:6px; font-size:12px; flex:1;" />
+            <button onclick="addAbonoFijo('${f.id}')" style="background:var(--fixed-blue); border:none; color:white; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">Procesar</button>
+            <button class="btn-del" onclick="rmF('${f.id}')"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>`;
+    }).join('');
+  }
 }
 
-async function addConfigFijo() {
-  const n = document.getElementById('fx_name').value.trim();
-  const c = document.getElementById('fx_cat').value;
-  const m = parseInt(document.getElementById('fx_monto').value);
-  if(!n || !m || m <= 0) return;
-  await supabase.from('config_fijos').insert([{ name: n, amount: m, category: c }]);
+async function addF() {
+  const n = document.getElementById('fN').value.trim();
+  const c = document.getElementById('fC').value;
+  const a = parseInt(document.getElementById('fA').value);
+  if(!n || !a || a <= 0) return;
+  await supabase.from('config_fijos').insert([{ name: n, amount: a, category: c }]);
   await fetchData();
 }
 
-async function delConfigFijo(id) {
-  if(confirm("¿Seguro?")) {
+async function rmF(id) {
+  if(confirm("¿Deseas desvincular esta obligación? Se borrarán sus registros.")) {
     await supabase.from('config_fijos').delete().eq('id', id);
     await fetchData();
   }
@@ -490,49 +579,149 @@ async function addAbonoFijo(idGastoFijo) {
   await fetchData();
 }
 
-// ================= PANEL: AHORROS =================
+// ================= PANEL: MÓDULO DE AHORROS PRO (YA HABILITADO) =================
 function renderSavings() {
+  const totalHistorico = tAhorroHistorico();
+  const aporteEsteMes = tAhorroMesActual();
+  const gastosReferencia = tE() || tF() || 1200000; 
+  
+  const ef3 = gastosReferencia * 3;
+  const ef6 = gastosReferencia * 6;
+  const mesesRespaldo = totalHistorico > 0 ? (totalHistorico / gastosReferencia).toFixed(1) : '0.0';
+
   document.getElementById('panel-savings').innerHTML = `
-    <div class="card">
-      <div style="font-size:15px; font-weight:600; color:var(--saving-purple); margin-bottom:8px;"><i class="ti ti-piggy-bank"></i> Módulo de Ahorros Pro</div>
-      <p style="font-size:13px; color:var(--text-muted); margin:0;">Aquí podrás configurar y proyectar tus metas de ahorro mensual para fin de año.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem;">
+      ${mc('Ahorro Histórico Nube', COP(totalHistorico), cP(), '<i class="ti ti-piggy-bank"></i> Total acumulado')}
+      ${mc(`Aporte en ${MO[M]}`, COP(aporteEsteMes), cG(), '<i class="ti ti-circle-plus"></i> Indexado al período')}
     </div>
-  `;
+
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:10px;"><i class="ti ti-coins" style="color:var(--money-green);"></i> Guardar capital en el Marrano Cloud</div>
+      <div class="form-row">
+        <input id="sA" type="number" placeholder="¿Cuánto vas a guardar o transferir hoy? $" style="flex:2;" />
+        <button class="btn-action" style="background:var(--saving-purple);" onclick="depS()"><i class="ti ti-lock-square-rounded"></i> Cargar al Fondo</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px;"><i class="ti ti-history"></i> Log de Transacciones de Fondos</div>
+      <div id="savings_log_target"></div>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--accent-gold);">
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px;color:var(--accent-gold);"><i class="ti ti-shield-checkered"></i> Tu Colchón de Emergencias (Escudo Financiero)</div>
+      <p style="font-size:13px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">La regla de oro técnica dicta mantener entre 3 y 6 meses de tus egresos base quietos por si surgen imprevistos mecánicos pesados o eventualidades laborales.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px;">
+        <div class="mcard"><div style="font-size:11px;color:var(--accent-gold);font-weight:600;margin-bottom:4px;">Mínimo Técnico (3 Meses)</div><div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;">${COP(ef3)}</div></div>
+        <div class="mcard"><div style="font-size:11px;color:var(--accent-gold);font-weight:600;margin-bottom:4px;">Nivel Pro Real (6 Meses)</div><div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;">${COP(ef6)}</div></div>
+      </div>
+      <div style="padding:12px;background:var(--bg-input);border-radius:10px;font-size:13px;">
+        Tu fondo de reserva actual respalda aproximadamente <strong>${mesesRespaldo} meses</strong> de tus gastos normales de vida. 
+        ${parseFloat(mesesRespaldo) >= 3 ? `<span style="color:var(--money-green); font-weight:600;">✓ ¡Estás blindado!</span>` : `<span style="color:var(--accent-gold);">Te faltan ${COP(Math.max(0, Math.round(ef3 - totalHistorico)))} para alcanzar el blindaje mínimo.</span>`}
+      </div>
+    </div>`;
+
+  const logTarget = document.getElementById('savings_log_target');
+  const registrosMes = db_ahorros.filter(a => a.mes_periodo === getPeriodo());
+  if(registrosMes.length === 0) {
+    logTarget.innerHTML = `<p style="color:var(--text-muted); font-size:13px; margin:0;">No se registran aportes de ahorro durante este mes todavía.</p>`;
+  } else {
+    logTarget.innerHTML = registrosMes.map(a => `
+      <div class="row-item">
+        <span style="font-size:13px;"><i class="ti ti-arrow-bar-to-down" style="color:var(--saving-purple);"></i> Depósito Seguro</span>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-weight:700; color:var(--saving-purple); font-size:13px;">+${COP(a.monto)}</span>
+          <button class="btn-del" onclick="rmSavings('${a.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>`).join('');
+  }
 }
 
-// ================= PANEL: CONSEJOS =================
+async function depS() {
+  const val = parseInt(document.getElementById('sA').value);
+  if(!val || val <= 0) return;
+  await supabase.from('ahorros').insert([{ monto: val, mes_periodo: getPeriodo() }]);
+  await fetchData();
+}
+
+async function rmSavings(id) {
+  await supabase.from('ahorros').delete().eq('id', id);
+  await fetchData();
+}
+
+// ================= PANEL: CONSEJOS PREMIUM (REGLA 50/30/20) =================
 function renderTips() {
+  const inc = tI();
+  const idealFijos = Math.round(inc * 0.5);
+  const idealGustos = Math.round(inc * 0.3);
+  const idealAhorro = Math.round(inc * 0.2);
+
+  const tips = [
+    {i:'ti-stairs',t:'Abona a Capital al Banco',c:cR(),b:`Las cuotas de créditos bancarios tienen intereses pesados al inicio. Si un mes te entra un dinero extra, haz un "Abono a Capital con reducción de tiempo". Eso tumba los intereses futuros de raíz y te ahorra millones.`},
+    {i:'ti-player-play-filled',t:'Regla de "Págate a ti primero"',c:cG(),b:'No ahorres lo que te sobra al final de la quincena, porque el sistema está diseñado para que nunca te sobre. Apenas entre el sueldo, desvía el 10% o 20% al fondo de ahorro inmediatamente y acomoda tu vida al saldo restante.'},
+    {i:'ti-scooter',t:'Fondo de Mantenimiento para la Moto',c:cB(),b:'Gastar en gasolina es fijo, pero los desgastes mecánicos invisibles (kit de arrastre, llantas, pastillas) te desbalancean si llegan de golpe. Guardar un micro-monto mensual en un sobre evitará romper tus tarjetas.'},
+    {i:'ti-alert-octagon',t:'Identifica y frena los Gastos Hormiga',c:cA(),b:'El café diario en la calle, suscripciones que no abres o domicilios pequeños parecen inofensivos, pero al sumarlos representan fugas silenciosas que superan el 15% de tus capacidades de capital.'}
+  ];
+
   document.getElementById('panel-tips').innerHTML = `
-    <div class="card">
-      <div style="font-size:15px; font-weight:600; color:var(--accent-gold); margin-bottom:8px;"><i class="ti ti-bulb"></i> Consejos Financieros Inteligentes</div>
-      <p style="font-size:13px; color:var(--text-muted); margin:0 0 10px;">Analizando tu retención de efectivo real en tiempo real...</p>
-      <ul style="font-size:13px; padding-left:20px; color:var(--text-main); line-height:1.6;">
-        <li>Intenta abonar tus obligaciones fijas apenas recibas tu primera quincena para evitar desfases.</li>
-        <li>Mantén tus gastos variables por debajo del 30% de tus ingresos netos totales.</li>
-      </ul>
+    <div style="margin-bottom:1.5rem;">
+      <h2 style="font-size:17px;font-weight:600;margin:0 0 4px;"><i class="ti ti-comet" style="color:var(--accent-gold);"></i> Estrategias Avanzadas de Optimización</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin:0;">Hábitos lógicos aplicados para el crecimiento patrimonial.</p>
     </div>
-  `;
+
+    ${inc > 0 ? `
+    <div class="card" style="margin-bottom:20px; border: 1px dashed var(--accent-gold);">
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px;"><i class="ti ti-adjustments-horizontal" style="color:var(--accent-gold);"></i> Distribución Óptima Basada en tus Ingresos (${COP(inc)})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+        <div class="mcard">
+          <div style="font-size:11px;color:var(--fixed-blue);font-weight:600;margin-bottom:4px;text-transform:uppercase;">50% Necesidades Fijas</div>
+          <div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;">${COP(idealFijos)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Para arriendo, moto, banco y servicios esenciales.</div>
+        </div>
+        <div class="mcard">
+          <div style="font-size:11px;color:var(--accent-gold);font-weight:600;margin-bottom:4px;text-transform:uppercase;">30% Deseos y Flexibles</div>
+          <div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;">${COP(idealGustos)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Salidas, ocio, ropa y lujos personales.</div>
+        </div>
+        <div class="mcard">
+          <div style="font-size:11px;color:var(--money-green);font-weight:600;margin-bottom:4px;text-transform:uppercase;">20% Inversión y Futuro</div>
+          <div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;">${COP(idealAhorro)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Tu colchón base y proyectos a mediano plazo.</div>
+        </div>
+      </div>
+    </div>` : ''}
+
+    ${tips.map(t=>`
+      <div class="tip-card" style="border-left-color:${t.c};">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <i class="ti ${t.i}" style="font-size:18px;color:${t.c};"></i>
+          <div style="font-size:14px;font-weight:600;">${t.t}</div>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin:0;line-height:1.6;">${t.b}</p>
+      </div>`).join('')}`;
 }
 
-// ================= NAVEGACIÓN Y TABS =================
-function setupTabs() {
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.addEventListener('click', () => {
-      currentTab = b.dataset.tab;
-      document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      document.getElementById(`panel-${currentTab}`).classList.add('active');
-      render();
-    });
-  });
-}
-
+// ================= NAVEGACIÓN ENTRE PERIODOS MENSUALES =================
 function setupMonthNavigation() {
   document.getElementById('prevBtn').addEventListener('click', async () => { M--; if(M < 0){ M = 11; Y--; } await fetchData(); });
   document.getElementById('nextBtn').addEventListener('click', async () => { M++; if(M > 11){ M = 0; Y++; } await fetchData(); });
 }
 
-// Ejecución controlada apenas el DOM base esté listo
+function setupTabs() {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      currentTab = b.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-selected','false'); });
+      b.classList.add('active');
+      b.setAttribute('aria-selected','true');
+      
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      const cp = document.getElementById(`panel-${currentTab}`);
+      if (cp) cp.classList.add('active');
+      render();
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', init);
 </script>
