@@ -176,19 +176,19 @@ let chartCaja = null, chartFijos = null;
 const COP = n => new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(n||0);
 const getPeriodo = () => `${Y}_${String(M+1).padStart(2,'0')}`;
 
-// Función segura para instanciar el cliente Supabase
-function conectarSupabase() {
-  try {
-    // Intenta buscar el cliente en las variantes de carga globales de CDN
-    const targetInstance = window.supabase || (window.Supabase && window.Supabase.createClient);
-    if (typeof targetInstance === 'function') {
-      supabase = targetInstance(SB_URL, SB_KEY);
-    } else if (window.Supabase && typeof window.Supabase.createClient === 'function') {
-      supabase = window.Supabase.createClient(SB_URL, SB_KEY);
+// Función que fuerza la espera de la librería externa en memoria antes de instanciar
+function inicializarClienteSeguro() {
+  const SupabaseLib = window.supabase || (window.Supabase && window.Supabase.createClient ? window.Supabase : null);
+  
+  if (SupabaseLib) {
+    if (typeof SupabaseLib.createClient === 'function') {
+      supabase = SupabaseLib.createClient(SB_URL, SB_KEY);
+    } else if (typeof SupabaseLib === 'function') {
+      supabase = SupabaseLib(SB_URL, SB_KEY);
     }
-  } catch (err) {
-    console.error("Error crítico instanciando cliente Supabase:", err);
+    return true;
   }
+  return false;
 }
 
 async function init() {
@@ -196,15 +196,19 @@ async function init() {
   setupMonthNavigation();
   document.getElementById('monthLabel').innerText = `${MO[M]} ${Y}`;
   
-  // Reintentar conexión si el script de la CDN demoró un pelo en indexarse
-  conectarSupabase();
+  // Si no encuentra la librería al instante, espera un bucle de 300ms (útil para archivos locales)
+  let conecto = inicializarClienteSeguro();
+  if (!conecto) {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    conecto = inicializarClienteSeguro();
+  }
 
   if (!supabase) {
     document.getElementById('panel-overview').innerHTML = `
       <div class="card" style="border-color: var(--expense-red); padding: 2rem; text-align: center;">
         <i class="ti ti-alert-triangle" style="font-size: 40px; color: var(--expense-red);"></i>
-        <h3 style="margin: 10px 0 6px;">Error de Inicialización</h3>
-        <p style="color: var(--text-muted); font-size: 14px; margin: 0;">La librería de Supabase no cargó a tiempo en producción. Refresca la pestaña.</p>
+        <h3 style="margin: 10px 0 6px;">Error de Enlace CDN</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin: 0;">El navegador bloqueó la descarga de la librería Supabase desde internet. Verifica tu conexión de red o refresca la pestaña.</p>
       </div>
     `;
     return;
@@ -529,6 +533,6 @@ function setupMonthNavigation() {
   document.getElementById('nextBtn').addEventListener('click', async () => { M++; if(M > 11){ M = 0; Y++; } await fetchData(); });
 }
 
-// Evento seguro para producción en Git
+// Ejecución controlada apenas el DOM base esté listo
 document.addEventListener('DOMContentLoaded', init);
 </script>
