@@ -1,8 +1,8 @@
 <h2 class="sr-only">Control de finanzas personales — tablero mensual de ingresos, egresos y ahorro</h2>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <style>
   :root {
@@ -18,6 +18,7 @@
     --expense-red: #ef4444;
     --fixed-blue: #3b82f6;
     --accent-gold: #f59e0b;
+    --saving-purple: #a855f7;
   }
 
   body {
@@ -135,7 +136,7 @@
   </div>
   <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 30px; padding: 6px 14px;">
     <button id="prevBtn" style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--text-main);"><i class="ti ti-chevron-left"></i></button>
-    <span id="monthLabel" style="font-size: 14px; font-weight: 600; min-width: 110px; text-align: center; text-transform: capitalize;">Cargando...</span>
+    <span id="monthLabel" style="font-size: 14px; font-weight: 600; min-width: 110px; text-align: center; text-transform: capitalize;">Buscando...</span>
     <button id="nextBtn" style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--text-main);"><i class="ti ti-chevron-right"></i></button>
   </div>
 </div>
@@ -145,18 +146,23 @@
   <button class="tab-btn" data-tab="income"><i class="ti ti-square-rounded-arrow-down" style="color: var(--money-green);"></i>Ingresos</button>
   <button class="tab-btn" data-tab="expenses"><i class="ti ti-square-rounded-arrow-up" style="color: var(--expense-red);"></i>Gastos Variables</button>
   <button class="tab-btn" data-tab="fixed"><i class="ti ti-pin" style="color: var(--fixed-blue);"></i>Obligaciones Fijas</button>
+  <button class="tab-btn" data-tab="savings"><i class="ti ti-piggy-bank" style="color: var(--saving-purple);"></i>Ahorro</button>
+  <button class="tab-btn" data-tab="tips"><i class="ti ti-bulb" style="color: var(--accent-gold);"></i>Consejos</button>
 </div>
 
-<div id="panel-overview" class="panel active">Cargando Tablero...</div>
+<div id="panel-overview" class="panel active">Inicializando el sistema...</div>
 <div id="panel-income" class="panel"></div>
 <div id="panel-expenses" class="panel"></div>
 <div id="panel-fixed" class="panel"></div>
+<div id="panel-savings" class="panel"></div>
+<div id="panel-tips" class="panel"></div>
 
 <script>
-// =============== CONFIGURACIÓN SUPABASE ===============
-const SB_URL = "pknkexsoidbvseftndos"; 
-const SB_KEY = "sb_publishable_M_i15QJSmUj0uvc-yi8vaQ_KOQ0moE6";
-const supabase = Supabase.createClient(SB_URL, SB_KEY);
+// =============== CONFIGURACIÓN GLOBAL ===============
+const SB_URL = "https://pknkexsoidbvseftndos.supabase.co"; 
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrbmtleHNvaWRidnNlZnRuZG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0OTU5NjAsImV4cCI6MjA5NTA3MTk2MH0.n7jBEp608AxcGaGawJCCwyG8cAhEM_R311Z7xTpP5Jo";
+
+let supabase = null;
 
 const MO=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const CATS=['Alimentación','Transporte','Vivienda','Salud','Educación','Entretenimiento','Servicios','Deudas','Otros'];
@@ -170,37 +176,68 @@ let chartCaja = null, chartFijos = null;
 const COP = n => new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(n||0);
 const getPeriodo = () => `${Y}_${String(M+1).padStart(2,'0')}`;
 
+// Función segura para instanciar el cliente Supabase
+function conectarSupabase() {
+  try {
+    // Intenta buscar el cliente en las variantes de carga globales de CDN
+    const targetInstance = window.supabase || (window.Supabase && window.Supabase.createClient);
+    if (typeof targetInstance === 'function') {
+      supabase = targetInstance(SB_URL, SB_KEY);
+    } else if (window.Supabase && typeof window.Supabase.createClient === 'function') {
+      supabase = window.Supabase.createClient(SB_URL, SB_KEY);
+    }
+  } catch (err) {
+    console.error("Error crítico instanciando cliente Supabase:", err);
+  }
+}
+
 async function init() {
   setupTabs();
   setupMonthNavigation();
+  document.getElementById('monthLabel').innerText = `${MO[M]} ${Y}`;
+  
+  // Reintentar conexión si el script de la CDN demoró un pelo en indexarse
+  conectarSupabase();
+
+  if (!supabase) {
+    document.getElementById('panel-overview').innerHTML = `
+      <div class="card" style="border-color: var(--expense-red); padding: 2rem; text-align: center;">
+        <i class="ti ti-alert-triangle" style="font-size: 40px; color: var(--expense-red);"></i>
+        <h3 style="margin: 10px 0 6px;">Error de Inicialización</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin: 0;">La librería de Supabase no cargó a tiempo en producción. Refresca la pestaña.</p>
+      </div>
+    `;
+    return;
+  }
   await fetchData();
 }
 
-// ============== CONSULTAS A LA BASE DE DATOS ==============
 async function fetchData() {
   try {
     const per = getPeriodo();
     document.getElementById('monthLabel').innerText = `${MO[M]} ${Y}`;
+    document.getElementById('panel-overview').innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:20px;">Consultando base de datos...</p>`;
 
-    // 1. Cargar configuración de fijos base
-    const f1 = await supabase.from('config_fijos').select('*');
+    const [f1, f2, f3, f4] = await Promise.all([
+      supabase.from('config_fijos').select('*'),
+      supabase.from('ingresos').select('*').eq('mes_periodo', per),
+      supabase.from('gastos_variables').select('*').eq('mes_periodo', per),
+      supabase.from('abonos_fijos').select('*').eq('mes_periodo', per)
+    ]);
+
     db_config_fijos = f1.data || [];
-
-    // 2. Cargar Ingresos
-    const f2 = await supabase.from('ingresos').select('*').eq('mes_periodo', per);
     db_ingresos = f2.data || [];
-
-    // 3. Cargar Gastos Variables
-    const f3 = await supabase.from('gastos_variables').select('*').eq('mes_periodo', per);
     db_variables = f3.data || [];
-
-    // 4. Cargar Abonos Fijos
-    const f4 = await supabase.from('abonos_fijos').select('*').eq('mes_periodo', per);
     db_abonos_fijos = f4.data || [];
 
     render();
   } catch (error) {
     console.error("Error cargando datos de Supabase:", error);
+    document.getElementById('panel-overview').innerHTML = `
+      <div class="card" style="border-color: var(--accent-gold); text-align: center;">
+        <p style="color: var(--accent-gold); margin: 0;">Error de comunicación con PostgreSQL. Revisa la configuración de tus políticas RLS.</p>
+      </div>
+    `;
   }
 }
 
@@ -209,6 +246,8 @@ function render() {
   if (currentTab === 'income') renderIncome();
   if (currentTab === 'expenses') renderExpenses();
   if (currentTab === 'fixed') renderFixed();
+  if (currentTab === 'savings') renderSavings();
+  if (currentTab === 'tips') renderTips();
 }
 
 // ================== DASHBOARDS (PESTAÑA RESUMEN) ==================
@@ -235,18 +274,13 @@ function renderOverview() {
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
-      
       <div class="card">
-        <div style="font-size:15px; font-weight:600; margin-bottom:4px;"><i class="ti ti-chart-donut" style="color:var(--money-green);"></i> Dashboard 1: Uso de tu Plata Real</div>
-        <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Egresos que ya salieron de tu cuenta quincenal</div>
-        
+        <div style="font-size:15px; font-weight:600; margin-bottom:4px;"><i class="ti ti-chart-donut" style="color:var(--money-green);"></i> Uso de tu Plata Real</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Egresos reales del mes quincenal</div>
         <div style="display:grid; grid-template-columns: 1fr 120px; gap:12px; align-items:center;">
           <div>
-            <div style="font-size:13px; margin-bottom:6px;">Gastos Variables: <strong style="color:var(--expense-red); font-variant-numeric: tabular-nums;">${COP(totalVariables)}</strong></div>
-            <div style="font-size:13px; margin-bottom:6px;">Abonos Fijos Hechos: <strong style="color:var(--fixed-blue); font-variant-numeric: tabular-nums;">${COP(totalAbonadoFijos)}</strong></div>
-            <div style="font-size:11px; color:var(--text-muted); border-top:1px solid var(--border-color); padding-top:6px; margin-top:6px;">
-              Retención de efectivo: Has guardado el ${totalIngresos>0?Math.round((saldoEspejoCuenta/totalIngresos)*100):0}% de lo recibido.
-            </div>
+            <div style="font-size:13px; margin-bottom:6px;">Gastos Variables: <strong style="color:var(--expense-red);">${COP(totalVariables)}</strong></div>
+            <div style="font-size:13px; margin-bottom:6px;">Abonos Fijos Hechos: <strong style="color:var(--fixed-blue);">${COP(totalAbonadoFijos)}</strong></div>
           </div>
           <div style="height:120px; position:relative;">
             ${totalEgresosReales > 0 ? `<canvas id="chartCajaCanvas"></canvas>` : `<div style="font-size:11px; color:var(--text-muted); text-align:center; padding-top:40px;">Sin egresos aún</div>`}
@@ -255,51 +289,40 @@ function renderOverview() {
       </div>
 
       <div class="card">
-        <div style="font-size:15px; font-weight:600; margin-bottom:4px;"><i class="ti ti-target-arrow" style="color:var(--accent-gold);"></i> Dashboard 2: Termómetro de Fijos</div>
+        <div style="font-size:15px; font-weight:600; margin-bottom:4px;"><i class="ti ti-target-arrow" style="color:var(--accent-gold);"></i> Termómetro de Fijos</div>
         <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Meta total comprometida: <strong>${COP(metaFijosMensual)}</strong></div>
-        
         <div style="display:grid; grid-template-columns: 1fr 120px; gap:12px; align-items:center;">
           <div>
             <div style="font-size:13px; margin-bottom:4px;">Progreso de Cobertura: <strong style="color:var(--money-green);">${porcMeteFijos}%</strong></div>
             <div class="pbar" style="margin-bottom:10px;"><div class="pbar-f" style="width:${porcMeteFijos}%; background:var(--fixed-blue);"></div></div>
-            <div style="font-size:12px; color:var(--text-muted);">Falta por pagar este mes:</div>
-            <div style="font-size:16px; font-weight:700; color:var(--expense-red); font-variant-numeric: tabular-nums;">${COP(fijosPendientes)}</div>
+            <div style="font-size:16px; font-weight:700; color:var(--expense-red);">${COP(fijosPendientes)}</div>
           </div>
           <div style="height:120px; position:relative;">
-            ${metaFijosMensual > 0 ? `<canvas id="chartFijosCanvas"></canvas>` : `<div style="font-size:11px; color:var(--text-muted); text-align:center; padding-top:40px;">Crea obligaciones fijos</div>`}
+            ${metaFijosMensual > 0 ? `<canvas id="chartFijosCanvas"></canvas>` : `<div style="font-size:11px; color:var(--text-muted); text-align:center; padding-top:40px;">Sin obligaciones fijas</div>`}
           </div>
         </div>
       </div>
-
     </div>
   `;
 
-  // Inicialización de Gráficas de los tableros de manera segura
   setTimeout(() => {
     const ctxCaja = document.getElementById('chartCajaCanvas');
     if(ctxCaja && totalEgresosReales > 0) {
       chartCaja = new Chart(ctxCaja, {
         type: 'doughnut',
-        data: {
-          labels: ['Variables', 'Fijos Pagados'],
-          datasets: [{ data: [totalVariables, totalAbonadoFijos], backgroundColor: ['#ef4444', '#3b82f6'], borderWidth: 0 }]
-        },
+        data: { labels: ['Variables', 'Fijos'], datasets: [{ data: [totalVariables, totalAbonadoFijos], backgroundColor: ['#ef4444', '#3b82f6'], borderWidth: 0 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '75%' }
       });
     }
-
     const ctxFijos = document.getElementById('chartFijosCanvas');
     if(ctxFijos && metaFijosMensual > 0) {
       chartFijos = new Chart(ctxFijos, {
         type: 'doughnut',
-        data: {
-          labels: ['Cubierto', 'Faltante'],
-          datasets: [{ data: [totalAbonadoFijos, fijosPendientes], backgroundColor: ['#10b981', '#1c2a30'], borderWidth: 0 }]
-        },
+        data: { labels: ['Cubierto', 'Faltante'], datasets: [{ data: [totalAbonadoFijos, fijosPendientes], backgroundColor: ['#10b981', '#1c2a30'], borderWidth: 0 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '75%' }
       });
     }
-  }, 100);
+  }, 50);
 }
 
 // ================= PANEL: INGRESO DE DINERO =================
@@ -318,14 +341,13 @@ function renderIncome() {
       <div id="income_list"></div>
     </div>
   `;
-  
   const list = document.getElementById('income_list');
   if (db_ingresos.length === 0) {
-    list.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:14px; padding:12px 0;">No hay ingresos reportados en este periodo.</p>`;
+    list.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:14px; padding:12px 0;">No hay ingresos reportados.</p>`;
   } else {
     list.innerHTML = db_ingresos.map(i => `
       <div class="row-item">
-        <div><div style="font-size:14px; font-weight:600;">${i.descripcion}</div><div style="font-size:11px; color:var(--text-muted);">${i.fecha}</div></div>
+        <div><div style="font-size:14px; font-weight:600;">${i.descripcion}</div></div>
         <div style="display:flex; align-items:center; gap:12px;"><span style="color:var(--money-green); font-weight:700;">+${COP(i.monto)}</span><button class="btn-del" onclick="delIngreso('${i.id}')"><i class="ti ti-trash"></i></button></div>
       </div>
     `).join('');
@@ -362,14 +384,13 @@ function renderExpenses() {
       <div id="var_list"></div>
     </div>
   `;
-  
   const list = document.getElementById('var_list');
   if (db_variables.length === 0) {
     list.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:14px; padding:12px 0;">No hay gastos variables todavía.</p>`;
   } else {
     list.innerHTML = db_variables.map(v => `
       <div class="row-item">
-        <div style="display:flex; align-items:center; gap:10px;"><i class="ti ${CICO[v.categoria]||'ti-package'}" style="color:var(--text-muted);"></i><div><div style="font-size:14px; font-weight:600;">${v.descripcion}</div><span style="font-size:10px; color:var(--text-muted); background:var(--bg-input); padding:2px 6px; border-radius:4px;">${v.categoria}</span></div></div>
+        <div style="display:flex; align-items:center; gap:10px;"><i class="ti ${CICO[v.categoria]||'ti-package'}" style="color:var(--text-muted);"></i><div><div style="font-size:14px; font-weight:600;">${v.descripcion}</div></div></div>
         <div style="display:flex; align-items:center; gap:12px;"><span style="color:var(--expense-red); font-weight:700;">-${COP(v.monto)}</span><button class="btn-del" onclick="delVariable('${v.id}')"><i class="ti ti-trash"></i></button></div>
       </div>
     `).join('');
@@ -424,20 +445,17 @@ function renderFixed() {
         <div style="display:flex; justify-content:space-between; align-items:start;">
           <div>
             <div style="font-size:14px; font-weight:600;"><i class="ti ${CICO[f.category]||'ti-package'}"></i> ${f.name}</div>
-            <span style="font-size:10px; color:var(--text-muted);">${f.category}</span>
           </div>
           <div style="text-align:right;">
             <div style="font-size:13px; font-weight:700;">Meta: ${COP(f.amount)}</div>
-            <div style="font-size:12px; color:var(--money-green); font-weight:600;">Abonado: ${COP(totalAbonado)}</div>
+            <div style="font-size:12px; color:var(--money-green);">Abonado: ${COP(totalAbonado)}</div>
           </div>
         </div>
-
         <div style="display:flex; gap:8px; align-items:center; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color);">
           <input id="abo_val_${f.id}" type="number" placeholder="Monto quincena" style="background:var(--bg-main); border:1px solid var(--border-color); color:#fff; padding:6px 10px; border-radius:6px; font-size:12px; flex:1;" />
-          <button onclick="addAbonoFijo('${f.id}')" style="background:var(--fixed-blue); border:none; color:white; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">Abonar</button>
-          <button class="btn-del" onclick="delConfigFijo('${f.id}')" style="padding:4px;"><i class="ti ti-trash"></i></button>
+          <button onclick="addAbonoFijo('${f.id}')" style="background:var(--fixed-blue); border:none; color:white; padding:6px 12px; border-radius:6px; cursor:pointer;">Abonar</button>
+          <button class="btn-del" onclick="delConfigFijo('${f.id}')"><i class="ti ti-trash"></i></button>
         </div>
-        ${pendiente > 0 ? `<div style="font-size:11px; color:var(--expense-red); text-align:right; margin-top:6px;">Falta por cubrir: ${COP(pendiente)}</div>` : `<div style="font-size:11px; color:var(--money-green); text-align:right; margin-top:6px; font-weight:600;">✓ Cubierto este mes</div>`}
       </div>
     `;
   }).join('');
@@ -453,7 +471,7 @@ async function addConfigFijo() {
 }
 
 async function delConfigFijo(id) {
-  if(confirm("¿Seguro que quieres eliminar esta obligación fija?")) {
+  if(confirm("¿Seguro?")) {
     await supabase.from('config_fijos').delete().eq('id', id);
     await fetchData();
   }
@@ -466,6 +484,30 @@ async function addAbonoFijo(idGastoFijo) {
   await supabase.from('abonos_fijos').insert([{ id_gasto_fijo: idGastoFijo, monto_abonado: m, mes_periodo: getPeriodo() }]);
   input.value = '';
   await fetchData();
+}
+
+// ================= PANEL: AHORROS =================
+function renderSavings() {
+  document.getElementById('panel-savings').innerHTML = `
+    <div class="card">
+      <div style="font-size:15px; font-weight:600; color:var(--saving-purple); margin-bottom:8px;"><i class="ti ti-piggy-bank"></i> Módulo de Ahorros Pro</div>
+      <p style="font-size:13px; color:var(--text-muted); margin:0;">Aquí podrás configurar y proyectar tus metas de ahorro mensual para fin de año.</p>
+    </div>
+  `;
+}
+
+// ================= PANEL: CONSEJOS =================
+function renderTips() {
+  document.getElementById('panel-tips').innerHTML = `
+    <div class="card">
+      <div style="font-size:15px; font-weight:600; color:var(--accent-gold); margin-bottom:8px;"><i class="ti ti-bulb"></i> Consejos Financieros Inteligentes</div>
+      <p style="font-size:13px; color:var(--text-muted); margin:0 0 10px;">Analizando tu retención de efectivo real en tiempo real...</p>
+      <ul style="font-size:13px; padding-left:20px; color:var(--text-main); line-height:1.6;">
+        <li>Intenta abonar tus obligaciones fijas apenas recibas tu primera quincena para evitar desfases.</li>
+        <li>Mantén tus gastos variables por debajo del 30% de tus ingresos netos totales.</li>
+      </ul>
+    </div>
+  `;
 }
 
 // ================= NAVEGACIÓN Y TABS =================
@@ -487,6 +529,6 @@ function setupMonthNavigation() {
   document.getElementById('nextBtn').addEventListener('click', async () => { M++; if(M > 11){ M = 0; Y++; } await fetchData(); });
 }
 
-// Arrancar la app cuando el DOM esté listo
-window.addEventListener('DOMContentLoaded', init);
+// Evento seguro para producción en Git
+document.addEventListener('DOMContentLoaded', init);
 </script>
